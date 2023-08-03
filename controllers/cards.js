@@ -36,7 +36,7 @@ module.exports.deleteCard = (req, res) => {
     })
     .catch((err) => {
       if (err.name === 'CastError') {
-        res.status(ERROR_NOT_FOUND).send({ message: 'Переданы некорректные данные при удалении карточки.' });
+        res.status(ERROR_CODE).send({ message: 'Переданы некорректные данные при удалении карточки.' });
         return;
       }
       res.status(ERROR_DEFAULT).send({ message: 'На сервере произошла ошибка' });
