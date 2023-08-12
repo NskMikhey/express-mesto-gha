@@ -1,3 +1,4 @@
+const { NODE_ENV, JWT_SECRET } = process.env;
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/user');
@@ -5,6 +6,7 @@ const BadRequestError = require('../errors/bad-request-error');
 const UnauthorizedError = require('../errors/unauthorized-error');
 const NotFoundError = require('../errors/not-found-error');
 const DefaultError = require('../errors/default-error');
+const ConflictError = require('../errors/conflict-err');
 
 // GET Получить всех пользователей
 module.exports.getUsers = (req, res, next) => {
@@ -34,26 +36,7 @@ module.exports.getUser = (req, res, next) => {
     .catch(next);
 };
 
-// POST Создать пользователя
-module.exports.createUser = (req, res, next) => {
-  const {
-    name, about, avatar, email, password,
-  } = req.body;
-
-  bcrypt.hash(password, 10)
-    .then((hash) => User.create({
-      name, about, avatar, email, password: hash,
-    }))
-    .then((user) => res.status(201).send(user))
-    .catch((err) => {
-      if (err.name === 'ValidationError') {
-        throw new BadRequestError('Переданы некорректные данные при создании пользователя.');
-      }
-      throw new DefaultError('На сервере произошла ошибка');
-    })
-    .catch(next);
-};
-
+// GET /users/me - возвращает информацию о текущем пользователе
 module.exports.getUserMe = (req, res, next) => {
   User.findById(req.user._id)
     .then((user) => {
@@ -65,6 +48,31 @@ module.exports.getUserMe = (req, res, next) => {
     .catch((err) => {
       if (err.name === 'CastError') {
         throw new BadRequestError('Переданы некорректные данные вместо _id пользователя.');
+      }
+      throw new DefaultError('На сервере произошла ошибка');
+    })
+    .catch(next);
+};
+
+// POST /signup —  Создать пользователя
+module.exports.createUser = (req, res, next) => {
+  const {
+    name, about, avatar, email, password,
+  } = req.body;
+  if (!email || !password) {
+    next(new BadRequestError('Поля email и password обязательны.'));
+  }
+  bcrypt.hash(password, 10)
+    .then((hash) => User.create({
+      name, about, avatar, email, password: hash,
+    }))
+    .then((user) => res.status(201).send(user))
+    .catch((err) => {
+      if (err.name === 'ValidationError') {
+        throw new BadRequestError('Переданы некорректные данные при создании пользователя.');
+      }
+      if (err.code === 11000) {
+        throw new ConflictError('Пользователь с таким Email уже есть в базе.');
       }
       throw new DefaultError('На сервере произошла ошибка');
     })
@@ -107,12 +115,13 @@ module.exports.updateUserAvatar = (req, res, next) => {
     .catch(next);
 };
 
+// POST /signin аутентификация (вход)
 module.exports.login = (req, res, next) => {
   const { email, password } = req.body;
 
   return User.findUserByCredentials(email, password)
     .then((user) => {
-      const token = jwt.sign({ _id: user._id }, 'some-secret-key', { expiresIn: '7d' });
+      const token = jwt.sign({ _id: user._id }, NODE_ENV === 'production' ? JWT_SECRET : 'some-secret-key', { expiresIn: '7d' });
 
       // вернём токен
       res.cookie('jwt', token, {
