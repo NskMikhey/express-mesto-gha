@@ -3,6 +3,7 @@ const {
   createUser,
   getUsers,
   getUser,
+  getUserMe,
   updateUser,
   updateUserAvatar,
 } = require('../controllers/users');
@@ -10,6 +11,7 @@ const {
 usersRouter.post('/users', createUser);
 usersRouter.get('/users', getUsers);
 usersRouter.get('/users/:id', getUser);
+usersRouter.get('/users/me', getUserMe);
 usersRouter.patch('/users/me', updateUser);
 usersRouter.patch('/users/me/avatar', updateUserAvatar);
 
