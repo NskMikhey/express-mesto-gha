@@ -2,9 +2,9 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const validator = require('validator');
 const { UnauthorizedError } = require('../errors/unauthorized-error');
-
+// требования к имени в схеме:
 const userSchema = new mongoose.Schema({
-  name: { // требования к имени в схеме:
+  name: {
     type: String,
     minlength: 2,
     maxlength: 30,

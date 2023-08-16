@@ -31,7 +31,7 @@ module.exports.getUser = (req, res, next) => {
       if (err.name === 'CastError') {
         throw new BadRequestError('Передан некорректный _id пользователя.');
       }
-      throw new DefaultError('На сервере произошла ошибка');
+      throw err;
     })
     .catch(next);
 };
