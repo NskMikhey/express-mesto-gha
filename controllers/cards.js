@@ -33,32 +33,23 @@ module.exports.createCard = (req, res, next) => {
 // DELETE Удалить карточку
 module.exports.deleteCard = (req, res, next) => {
   Card.findById(req.params.id)
+    .orFail(() => {
+      next(new NotFoundError('Карточка с указанным _id не найдена.'));
+    })
     .then((card) => {
-      if (!card) {
-        throw new NotFoundError('Передан несуществующий _id карточки.');
-      }
-      if (String(card.owner) === req.user._id) {
-        Card.findByIdAndRemove(req.params.id)
-          .then(() => {
-            res.status(200).send({ message: 'Карточка удалена' });
-          })
-          .catch((err) => {
-            if (err.name === 'CastError') {
-              throw new BadRequestError('Передан некорректный _id карточки.');
-            }
-            throw new DefaultError('На сервере произошла ошибка');
-          });
+      if (!card.owner.equals(req.user._id)) {
+        next(new ForbiddenError('Попытка удалить чужую карточку.'));
       } else {
-        throw new ForbiddenError('Вы не являетесь создателем данной карточки');
+        res.send({ card });
       }
     })
     .catch((err) => {
       if (err.name === 'CastError') {
-        throw new BadRequestError('Передан некорректный id карточки.');
+        next(new BadRequestError('Переданы некорректные данные при удалении карточки.'));
+      } else {
+        next(err);
       }
-      throw new DefaultError('На сервере произошла ошибка');
-    })
-    .catch(next);
+    });
 };
 
 // PUT Поставить лайк карточке
@@ -68,19 +59,17 @@ module.exports.likeCard = (req, res, next) => {
     { $addToSet: { likes: req.user._id } }, // добавить _id в массив, если его там нет
     { new: true, runValidators: true },
   )
-    .then((card) => {
-      if (!card) {
-        throw new NotFoundError('Передан несуществующий _id карточки.');
-      }
-      res.status(200).send(card);
+    .orFail(() => {
+      next(new NotFoundError('Передан несуществующий _id карточки.'));
     })
+    .then((card) => res.send(card))
     .catch((err) => {
       if (err.name === 'CastError') {
-        throw new BadRequestError('Переданы некорректные данные для постановки лайка.');
+        next(new BadRequestError('Переданы некорректные данные для постановки лайка.'));
+      } else {
+        next(err);
       }
-      throw new DefaultError('На сервере произошла ошибка');
-    })
-    .catch(next);
+    });
 };
 
 // DELETE Удалить лайк у карточки
@@ -90,17 +79,15 @@ module.exports.dislikeCard = (req, res, next) => {
     { $pull: { likes: req.user._id } }, // убрать _id из массива
     { new: true, runValidators: true },
   )
-    .then((card) => {
-      if (!card) {
-        throw new NotFoundError('Передан несуществующий _id карточки.');
-      }
-      res.status(200).send(card);
+    .orFail(() => {
+      next(new NotFoundError('Передан несуществующий _id карточки.'));
     })
+    .then((card) => res.send(card))
     .catch((err) => {
       if (err.name === 'CastError') {
-        throw new BadRequestError('Переданы некорректные данные для снятия лайка.');
+        next(new BadRequestError('Переданы некорректные данные для снятии лайка.'));
+      } else {
+        next(err);
       }
-      throw new DefaultError('На сервере произошла ошибка');
-    })
-    .catch(next);
+    });
 };
