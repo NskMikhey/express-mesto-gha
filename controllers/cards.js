@@ -37,6 +37,7 @@ module.exports.deleteCard = (req, res, next) => {
       if (!card) {
         throw new NotFoundError('Передан несуществующий _id карточки.');
       }
+
       if (String(card.owner) === req.user._id) {
         Card.findByIdAndRemove(req.params.id)
           .then(() => {
@@ -56,7 +57,7 @@ module.exports.deleteCard = (req, res, next) => {
       if (err.name === 'CastError') {
         throw new BadRequestError('Передан некорректный id карточки.');
       }
-      throw new DefaultError('На сервере произошла ошибка');
+      throw err;
     })
     .catch(next);
 };

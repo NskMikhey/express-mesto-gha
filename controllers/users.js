@@ -20,23 +20,37 @@ module.exports.getUsers = (req, res, next) => {
 
 // GET Получить пользователя по ID
 module.exports.getUser = (req, res, next) => {
-  User.findById(req.params.userId)
-    .orFail(() => next(new NotFoundError('Пользователь по указанному _id не найден.')))
-    .then((user) => res.send(user))
+  User.findById(req.params.id)
+    .then((user) => {
+      if (!user) {
+        throw new NotFoundError('Пользователь по указанному _id не найден.');
+      }
+      res.status(200).send(user);
+    })
     .catch((err) => {
       if (err.name === 'CastError') {
-        next(new BadRequestError('Передан некорректный _id пользователя.'));
-      } else {
-        next(err);
+        throw new BadRequestError('Переданы некорректные данные вместо _id пользователя.');
       }
-    });
+      throw err;
+    })
+    .catch(next);
 };
 
 // GET /users/me - возвращает информацию о текущем пользователе
 module.exports.getUserMe = (req, res, next) => {
   User.findById(req.user._id)
-    .orFail(() => next(new NotFoundError('Пользователь по указанному _id не найден.')))
-    .then((user) => res.send(user))
+    .then((user) => {
+      if (!user) {
+        throw new NotFoundError('Пользователь по указанному _id не найден.');
+      }
+      res.status(200).send(user);
+    })
+    .catch((err) => {
+      if (err.name === 'CastError') {
+        throw new BadRequestError('Переданы некорректные данные вместо _id пользователя.');
+      }
+      throw err;
+    })
     .catch(next);
 };
 
