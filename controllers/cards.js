@@ -33,23 +33,32 @@ module.exports.createCard = (req, res, next) => {
 // DELETE Удалить карточку
 module.exports.deleteCard = (req, res, next) => {
   Card.findById(req.params.id)
-    .orFail(() => {
-      next(new NotFoundError('Карточка с указанным _id не найдена.'));
-    })
     .then((card) => {
-      if (!card.owner.equals(req.user._id)) {
-        next(new ForbiddenError('Попытка удалить чужую карточку.'));
+      if (!card) {
+        throw new NotFoundError('Передан несуществующий _id карточки.');
+      }
+      if (String(card.owner) === req.user._id) {
+        Card.findByIdAndRemove(req.params.id)
+          .then(() => {
+            res.status(200).send({ message: 'Карточка удалена' });
+          })
+          .catch((err) => {
+            if (err.name === 'CastError') {
+              throw new BadRequestError('Передан некорректный _id карточки.');
+            }
+            throw new DefaultError('На сервере произошла ошибка');
+          });
       } else {
-        res.send({ card });
+        throw new ForbiddenError('Вы не являетесь создателем данной карточки');
       }
     })
     .catch((err) => {
       if (err.name === 'CastError') {
-        next(new BadRequestError('Переданы некорректные данные при удалении карточки.'));
-      } else {
-        next(err);
+        throw new BadRequestError('Передан некорректный id карточки.');
       }
-    });
+      throw new DefaultError('На сервере произошла ошибка');
+    })
+    .catch(next);
 };
 
 // PUT Поставить лайк карточке

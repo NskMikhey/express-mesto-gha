@@ -20,41 +20,27 @@ module.exports.getUsers = (req, res, next) => {
 
 // GET Получить пользователя по ID
 module.exports.getUser = (req, res, next) => {
-  User.findById(req.params.id)
-    .then((user) => {
-      if (!user) {
-        throw new NotFoundError('Пользователь по указанному _id не найден.');
-      }
-      res.status(200).send(user);
-    })
+  User.findById(req.params.userId)
+    .orFail(() => next(new NotFoundError('Пользователь по указанному _id не найден.')))
+    .then((user) => res.send(user))
     .catch((err) => {
       if (err.name === 'CastError') {
-        throw new BadRequestError('Передан некорректный _id пользователя.');
+        next(new BadRequestError('Передан некорректный _id пользователя.'));
+      } else {
+        next(err);
       }
-      throw err;
-    })
-    .catch(next);
+    });
 };
 
 // GET /users/me - возвращает информацию о текущем пользователе
 module.exports.getUserMe = (req, res, next) => {
   User.findById(req.user._id)
-    .then((user) => {
-      if (!user) {
-        throw new NotFoundError('Пользователь по указанному _id не найден.');
-      }
-      res.status(200).send(user);
-    })
-    .catch((err) => {
-      if (err.name === 'CastError') {
-        throw new BadRequestError('Переданы некорректные данные вместо _id пользователя.');
-      }
-      throw new DefaultError('На сервере произошла ошибка');
-    })
+    .orFail(() => next(new NotFoundError('Пользователь по указанному _id не найден.')))
+    .then((user) => res.send(user))
     .catch(next);
 };
 
-// Изменить информацию о пользователе
+// PATCH / Изменить информацию о пользователе
 module.exports.updateUser = (req, res, next) => {
   const { name, about } = req.body;
 
@@ -72,7 +58,7 @@ module.exports.updateUser = (req, res, next) => {
     .catch(next);
 };
 
-// Изменить аватар пользователя
+// PATCH / Изменить аватар пользователя
 module.exports.updateUserAvatar = (req, res, next) => {
   const { avatar } = req.body;
 
@@ -104,9 +90,11 @@ module.exports.createUser = (req, res, next) => {
     .then((hash) => User.create({
       name, about, avatar, email, password: hash,
     }))
-    .then((user) => res.send({
-      name: user.name, about: user.about, avatar: user.avatar, _id: user._id, email: user.email,
-    }))
+    .then((user) => {
+      const newUser = user.toObject();
+      delete newUser.password;
+      res.send(newUser);
+    })
     .catch((err) => {
       if (err.name === 'ValidationError') {
         next(new BadRequestError('Переданы некорректные данные при создании пользователя.'));
