@@ -141,8 +141,8 @@ module.exports.login = (req, res, next) => {
         maxAge: 3600000 * 24 * 7,
         httpOnly: true,
         sameSite: true,
-      })
-        .end();
+      });
+      res.send({ token: `Bearer ${token}` });
     })
     .catch(() => {
       // ошибка аутентификации
