@@ -21,36 +21,26 @@ module.exports.getUsers = (req, res, next) => {
 // GET Получить пользователя по ID
 module.exports.getUser = (req, res, next) => {
   User.findById(req.params.id)
-    .then((user) => {
-      if (!user) {
-        throw new NotFoundError('Пользователь по указанному _id не найден.');
-      }
-      res.status(200).send(user);
+    .orFail(() => {
+      next(new NotFoundError('Пользователь по указанному _id не найден.'));
     })
+    .then((user) => res.send(user))
     .catch((err) => {
       if (err.name === 'CastError') {
-        throw new BadRequestError('Переданы некорректные данные вместо _id пользователя.');
+        next(new BadRequestError('Передан некорректный _id пользователя.'));
+      } else {
+        next(err);
       }
-      throw err;
-    })
-    .catch(next);
+    });
 };
 
 // GET /users/me - возвращает информацию о текущем пользователе
 module.exports.getUserMe = (req, res, next) => {
   User.findById(req.user._id)
-    .then((user) => {
-      if (!user) {
-        throw new NotFoundError('Пользователь по указанному _id не найден.');
-      }
-      res.status(200).send(user);
+    .orFail(() => {
+      next(new NotFoundError('Пользователь по указанному _id не найден.'));
     })
-    .catch((err) => {
-      if (err.name === 'CastError') {
-        throw new BadRequestError('Переданы некорректные данные вместо _id пользователя.');
-      }
-      throw err;
-    })
+    .then((user) => res.send(user))
     .catch(next);
 };
 
@@ -59,15 +49,20 @@ module.exports.updateUser = (req, res, next) => {
   const { name, about } = req.body;
 
   User.findByIdAndUpdate(req.user._id, { name, about }, { new: true, runValidators: true })
-    .then((user) => res.status(200).send(user))
+    .then((user) => {
+      if (!user) {
+        throw new NotFoundError('Пользователь по указанному _id не найден.');
+      }
+      res.status(200).send(user);
+    })
     .catch((err) => {
       if (err.name === 'ValidationError') {
         throw new BadRequestError('Переданы некорректные данные при обновлении профиля.');
       }
       if (err.name === 'CastError') {
-        throw new NotFoundError('Пользователь с указанным _id не найден.');
+        throw new BadRequestError('Переданы некорректные данные вместо _id пользователя.');
       }
-      throw new DefaultError('На сервере произошла ошибка');
+      throw err;
     })
     .catch(next);
 };
@@ -77,15 +72,20 @@ module.exports.updateUserAvatar = (req, res, next) => {
   const { avatar } = req.body;
 
   User.findByIdAndUpdate(req.user._id, { avatar }, { new: true, runValidators: true })
-    .then((user) => res.status(200).send(user))
+    .then((user) => {
+      if (!user) {
+        throw new NotFoundError('Пользователь по указанному _id не найден.');
+      }
+      res.status(200).send(user);
+    })
     .catch((err) => {
       if (err.name === 'ValidationError') {
         throw new BadRequestError('Переданы некорректные данные при обновлении аватара.');
       }
       if (err.name === 'CastError') {
-        throw new NotFoundError('Пользователь с указанным _id не найден.');
+        throw new BadRequestError('Переданы некорректные данные вместо _id пользователя.');
       }
-      throw new DefaultError('На сервере произошла ошибка');
+      throw err;
     })
     .catch(next);
 };
@@ -96,28 +96,36 @@ module.exports.createUser = (req, res, next) => {
     name, about, avatar, email, password,
   } = req.body;
 
-  if (!email || !password) {
-    next(new BadRequestError('Поля email и password обязательны.'));
-  }
-
-  bcrypt.hash(password, 10)
-    .then((hash) => User.create({
-      name, about, avatar, email, password: hash,
-    }))
-    .then((user) => {
-      const newUser = user.toObject();
-      delete newUser.password;
-      res.send(newUser);
-    })
-    .catch((err) => {
-      if (err.name === 'ValidationError') {
-        next(new BadRequestError('Переданы некорректные данные при создании пользователя.'));
-      } else if (err.code === 11000) {
-        next(new ConflictError('Передан уже зарегистрированный email.'));
+  User.find({ email })
+    .then((result) => {
+      if (result.length === 0) {
+        bcrypt.hash(password, 10)
+          .then((hash) => User.create({
+            name,
+            about,
+            avatar,
+            email,
+            password: hash,
+          }))
+          .then((user) => res.status(201).send({
+            name: user.name,
+            about: user.about,
+            avatar: user.avatar,
+            email: user.email,
+            _id: user._id,
+          }))
+          .catch((err) => {
+            if (err.name === 'ValidationError') {
+              throw new BadRequestError('Переданы некорректные данные при создании пользователя.');
+            }
+            throw new DefaultError('На сервере произошла');
+          })
+          .catch(next);
       } else {
-        next(err);
+        throw new ConflictError(`Пользователь с адресом электронной почты ${email} уже существует!`);
       }
-    });
+    })
+    .catch(next);
 };
 
 // POST /signin аутентификация (вход)
