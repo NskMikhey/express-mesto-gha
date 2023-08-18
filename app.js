@@ -8,7 +8,7 @@ const cardsRouter = require('./routes/cards');
 const { login, createUser } = require('./controllers/users');
 const auth = require('./middlewares/auth');
 const { NotFoundError } = require('./errors/not-found-error');
-const urlRegexpPattern = require('./errors/link-regex');
+const { urlRegexpPattern } = require('./constants');
 
 const { PORT = 3000 } = process.env;
 const app = express();
@@ -22,14 +22,14 @@ mongoose.connect('mongodb://127.0.0.1:27017/mestodb');
 
 app.post('/signin', celebrate({
   body: Joi.object().keys({
-    email: Joi.string().required().min(2).max(130),
+    email: Joi.string().required().email(),
     password: Joi.string().required().min(3),
   }),
 }), login);
 
 app.post('/signup', celebrate({
   body: Joi.object().keys({
-    email: Joi.string().required().min(2).max(130),
+    email: Joi.string().required().email(),
     password: Joi.string().required().min(3),
     name: Joi.string().min(2).max(30),
     about: Joi.string().min(2).max(30),

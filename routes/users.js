@@ -8,7 +8,7 @@ const {
   updateUserAvatar,
 } = require('../controllers/users');
 
-const urlRegexpPattern = require('../errors/link-regex');
+const { urlRegexpPattern } = require('../constants');
 
 usersRouter.get('/users', getUsers);
 usersRouter.get('/users/me', getUserMe);

@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 const validator = require('validator');
-const urlRegexpPattern = require('../errors/link-regex');
+const { urlRegexpPattern } = require('../constants');
 // требования к имени в схеме:
 const userSchema = new mongoose.Schema({
   name: {

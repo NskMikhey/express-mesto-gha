@@ -8,7 +8,7 @@ const {
   dislikeCard,
 } = require('../controllers/cards');
 
-const urlRegexpPattern = require('../errors/link-regex');
+const { urlRegexpPattern } = require('../constants');
 
 cardsRouter.get('/cards', getCards);
 cardsRouter.delete('/cards/:id', celebrate({
