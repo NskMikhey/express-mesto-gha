@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-const { UnauthorizedError } = require('../errors/unauthorized-error');
+const UnauthorizedError = require('../errors/unauthorized-error');
 
 // мидлвара авторизации - проверяет наличие токена и верифицирует его
 

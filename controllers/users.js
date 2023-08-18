@@ -6,7 +6,7 @@ const BadRequestError = require('../errors/bad-request-error');
 const UnauthorizedError = require('../errors/unauthorized-error');
 const NotFoundError = require('../errors/not-found-error');
 const DefaultError = require('../errors/default-error');
-const ConflictError = require('../errors/conflict-err');
+const ConflictError = require('../errors/conflict-error');
 
 // GET Получить всех пользователей
 module.exports.getUsers = (req, res, next) => {
