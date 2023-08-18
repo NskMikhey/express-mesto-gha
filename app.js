@@ -7,7 +7,7 @@ const usersRouter = require('./routes/users');
 const cardsRouter = require('./routes/cards');
 const { login, createUser } = require('./controllers/users');
 const auth = require('./middlewares/auth');
-const { NotFoundError } = require('./errors/not-found-error');
+const NotFoundError = require('./errors/not-found-error');
 const { urlRegexpPattern } = require('./constants');
 
 const { PORT = 3000 } = process.env;
