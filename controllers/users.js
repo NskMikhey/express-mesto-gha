@@ -96,36 +96,26 @@ module.exports.createUser = (req, res, next) => {
     name, about, avatar, email, password,
   } = req.body;
 
-  User.find({ email })
-    .then((result) => {
-      if (result.length === 0) {
-        bcrypt.hash(password, 10)
-          .then((hash) => User.create({
-            name,
-            about,
-            avatar,
-            email,
-            password: hash,
-          }))
-          .then((user) => res.status(201).send({
-            name: user.name,
-            about: user.about,
-            avatar: user.avatar,
-            email: user.email,
-            _id: user._id,
-          }))
-          .catch((err) => {
-            if (err.name === 'ValidationError') {
-              throw new BadRequestError('Переданы некорректные данные при создании пользователя.');
-            }
-            throw new DefaultError('На сервере произошла');
-          })
-          .catch(next);
+  bcrypt.hash(password, 10)
+    .then((hash) => User.create({
+      name, about, avatar, email, password: hash,
+    }))
+    .then((user) => res.status(201).send({
+      name: user.name,
+      about: user.about,
+      avatar: user.avatar,
+      email: user.email,
+      _id: user._id,
+    }))
+    .catch((err) => {
+      if (err.name === 'ValidationError') {
+        next(new BadRequestError('Переданы некорректные данные при создании пользователя.'));
+      } else if (err.code === 11000) {
+        next(new ConflictError(`Пользователь с адресом электронной почты ${email} уже существует!`));
       } else {
-        throw new ConflictError(`Пользователь с адресом электронной почты ${email} уже существует!`);
+        next(err);
       }
-    })
-    .catch(next);
+    });
 };
 
 // POST /signin аутентификация (вход)
